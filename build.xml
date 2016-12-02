@@ -1,0 +1,101 @@
+<project name="RandomAccessHashSet" default="compile" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+
+<description>
+	Project description
+</description>
+
+<property name="src" location="src"/>
+<property name="test" location="test"/>
+<property name="build" location="bin"/>
+<property name="dist"  location="dist"/>
+<property name="libs" location="lib"/>
+<property name="doc" location="doc"/>
+
+<!-- Replace with name of this programs main class -->
+<property name="mainClass" value="my.package.ClassName"/>
+
+<path id="project.class.path">
+	<pathelement path="${build}" />
+	<fileset dir="${libs}" includes="**/*.jar"/>
+</path>
+
+<target name="init" description="Initialize Ant script">
+	<tstamp/>
+	<mkdir dir="${build}"/>
+	<mkdir dir="${dist}"/>
+	<mkdir dir="${libs}"/>
+	<mkdir dir="${doc}"/>
+</target>
+
+<target name="clean" description="Delete previous jar and class files">
+	<delete dir="${build}"/>
+	<delete dir="${dist}"/>
+	<delete dir="${doc}"/>
+</target>
+
+<target name="libs" description="Download and/or compile dependency libraries and other assets">
+	<ivy:retrieve />
+</target>
+
+<target name="test" description="Run JUnit tests" depends="compile,compileTests">
+	<junit showoutput="true" printsummary="yes" haltonfailure="yes" fork="true">
+		<formatter type="brief" usefile="false"/>
+		<classpath refid="project.class.path" />
+
+		<batchtest>
+			<fileset dir="${test}" includes="**/*Test.java"/>
+		</batchtest>
+	</junit>
+</target>
+
+<target name="compile" description="Compile code" depends="init">
+	<javac includeantruntime="true" srcdir="${src}" destdir="${build}">
+		<classpath refid="project.class.path" />
+	</javac>
+</target>
+
+<target name="debug" description="Compile code with debug options and run a debug session" depends="init">
+	<javac includeantruntime="true" srcdir="${src}" destdir="${build}" debug="on" debuglevel="lines,vars,source">
+		<classpath refid="project.class.path" />
+	</javac>
+	<java classname="${mainClass}" fork="true">
+		<jvmarg value="-Xdebug"/>
+		<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y"/>
+		<classpath refid="project.class.path" />
+	</java>
+</target>
+
+<target name="run" description="Run program" depends="compile">
+	<java classname="${mainClass}">
+		<classpath refid="project.class.path" />
+		<arg line="${args}" />
+	</java>
+</target>
+
+<target name="compileTests" description="Compile test classes" depends="init">
+	<javac includeantruntime="true" srcdir="${test}" destdir="${build}">
+		<classpath refid="project.class.path" />
+	</javac>
+</target>
+
+<target name="javadoc" description="Compiles JavaDocs for this project" depends="init">
+	<javadoc packagenames="*" access="package" additionalparam="-link http://docs.oracle.com/javase/8/docs/api/ " author="false" sourcepath="src" destdir="${doc}" source="1.8">
+	</javadoc>
+</target>
+
+<target name="package" description="Package files to JAR" depends="test,javadoc">
+	<jar jarfile="${dist}/${ant.project.name}-${DSTAMP}.jar" basedir="${build}">
+		<manifest>
+			<attribute name="Main-Class" value="${mainClass}"/>
+		</manifest>
+	</jar>
+</target>
+
+<target name="deploy" description="Deploy code to server">
+</target>
+
+<target name="info" description="Info about this build script">
+	<echo>Classpath: ${toString:project.class.path}</echo>
+</target>
+
+</project>
