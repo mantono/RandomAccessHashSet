@@ -8,8 +8,7 @@ import java.util.Set;
  * retrieval of a random element in the data structure. For example;
  *
  * <pre>
- * {
- * 	&#64;code
+ * {@code
  * 	final SecureRandom random = new SecureRandom();
  * 	final int elementIndex = random.nextInt(setOfElements.size());
  * 	int i = 0;
