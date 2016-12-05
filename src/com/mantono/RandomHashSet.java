@@ -303,8 +303,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	@Override
 	public Iterator<T> iterator()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return new TableIterator<T>();
 	}
 
 	@Override
@@ -394,5 +393,83 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 		{
 			readLock.unlock();
 		}
+	}
+
+	private class TableIterator<T> implements Iterator<T>
+	{
+		private final int startSize;
+		private int arryIndex, listIndex, traversedElements;
+		private boolean hasElement = false;
+
+		public TableIterator()
+		{
+			this.arryIndex = this.traversedElements = 0;
+			this.listIndex = -1;
+			this.startSize = size.get();
+		}
+
+		@Override
+		public boolean hasNext()
+		{
+			return traversedElements < startSize;
+		}
+
+		@Override
+		public T next()
+		{
+			try
+			{
+				readLock.lock();
+				if(!hasNext())
+					throw new NoSuchElementException();
+				final T next = nextElement();
+				traversedElements++;
+				hasElement = true;
+				return next;
+			}
+			finally
+			{
+				readLock.unlock();
+			}
+		}
+
+		private T nextElement()
+		{
+			T e = null;
+
+			while(e == null)
+			{
+				listIndex++;
+				if(table[arryIndex] == null || table[arryIndex].size() <= listIndex)
+				{
+					arryIndex++;
+					listIndex = -1;
+					continue;
+				}
+
+				e = (T) table[arryIndex].get(listIndex);
+			}
+
+			return e;
+		}
+
+		@Override
+		public void remove()
+		{
+			try
+			{
+				writeLock.lock();
+				if(!hasElement)
+					throw new IllegalStateException();
+				table[arryIndex].remove(listIndex);
+				size.decrementAndGet();
+				hasElement = false;
+			}
+			finally
+			{
+				writeLock.unlock();
+			}
+		}
+
 	}
 }
