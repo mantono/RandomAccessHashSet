@@ -1,6 +1,7 @@
 package com.mantono;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -48,7 +49,9 @@ public interface RandomAccess<T>
 	/**
 	 * Get a random element, but do not remove it.
 	 * 
-	 * @return a random element in the data structure.
+	 * @return a random element in the data structure
+	 * 
+	 * @throws NoSuchElementException if this data structure is empty
 	 */
 	T getRandomElement();
 }

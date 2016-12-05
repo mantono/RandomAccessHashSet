@@ -2,13 +2,19 @@ package com.mantono;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 
 public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 {
@@ -20,12 +26,16 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 			196613, 393241, 786433, 1572869, 3145739, 6291469, 12582917, 25165843, 50331653, 100663319, 201326611,
 			402653189, 805306457, 1610612741};
 
+	private final static float LOAD_FACTOR = 1.6f;
+
 	private List<T>[] table;
 	private volatile int arraySize = 11;
 	private volatile int primeIndex = -1;
-	private volatile int count = 0;
-	private final Lock hashLock = new ReentrantLock();
-	private final Condition hashFinished = hashLock.newCondition();
+	private AtomicInteger size = new AtomicInteger();
+	private final ReentrantReadWriteLock tableLock = new ReentrantReadWriteLock(true);
+	private final Lock writeLock = tableLock.writeLock();
+	private final Lock readLock = tableLock.readLock();
+	// private final Condition hashFinished = tableLock.newCondition();
 	private final Random random;
 
 	/**
@@ -99,7 +109,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	{
 		try
 		{
-			hashLock.lock();
+			writeLock.lock();
 			final int index = hashIndex(e, array);
 			if(index >= array.length)
 				throw new ConcurrentModificationException("Illegal state: Trying to insert in index " + index
@@ -112,7 +122,10 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 		}
 		finally
 		{
-			hashLock.unlock();
+			final float threshold = arraySize * LOAD_FACTOR;
+			if(size.get() > threshold)
+				expand();
+			writeLock.unlock();
 		}
 	}
 
@@ -121,46 +134,21 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 */
 	private void expand()
 	{
-		hashLock.lock();
+		writeLock.lock();
 		advanceTotNextPrime();
 		rehashTable();
-		hashFinished.signalAll();
-		hashLock.unlock();
+		writeLock.unlock();
 	}
 
 	/**
-	 * Shrinks the size of the internal array. This method is currently not
-	 * used.
+	 * Shrinks the size of the internal array.
 	 */
 	private void shrink()
 	{
-		hashLock.lock();
+		writeLock.lock();
 		previousPrime();
 		rehashTable();
-		hashFinished.signalAll();
-		hashLock.unlock();
-	}
-
-	/**
-	 * Waits for this class {@link ReentrantLock} to be released that is locking
-	 * the internal array.
-	 * 
-	 * A more compact version of {@link Condition#await()} with exception
-	 * handling taken care of, so this will not have to repeated every time
-	 * <code>hashFinished.await()</code> would be called.
-	 */
-	private void waitForHash()
-	{
-		try
-		{
-			while(table.length != arraySize)
-				hashFinished.await();
-		}
-		catch(InterruptedException e)
-		{
-			hashLock.unlock();
-			e.printStackTrace();
-		}
+		writeLock.unlock();
 	}
 
 	/**
@@ -190,7 +178,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * @return an index based on the hash for the element and which is within
 	 * bounds for the size of the array.
 	 */
-	private int hashIndex(T obj, Object[] array)
+	private int hashIndex(Object obj, Object[] array)
 	{
 		final int hash = obj.hashCode();
 		final int index = hash % array.length;
@@ -233,6 +221,182 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 				primeIndex = i;
 				return;
 			}
+		}
+	}
+
+	private List<T> getList(Object obj)
+	{
+		final int index = hashIndex(obj, table);
+		return table[index];
+	}
+
+	@Override
+	public boolean add(T arg0)
+	{
+		if(addToTable(arg0, table))
+		{
+			size.incrementAndGet();
+			return true;
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends T> collection)
+	{
+		boolean changed = false;
+		for(T element : collection)
+			if(add(element))
+				changed = true;
+
+		return changed;
+	}
+
+	@Override
+	public void clear()
+	{
+		try
+		{
+			writeLock.lock();
+			primeIndex = 0;
+			arraySize = 11;
+			table = new ArrayList[arraySize];
+			size.set(0);
+		}
+		finally
+		{
+			writeLock.unlock();
+		}
+	}
+
+	@Override
+	public boolean contains(Object obj)
+	{
+		try
+		{
+			readLock.lock();
+			final List<T> list = getList(obj);
+			if(list == null)
+				return false;
+
+			return list.contains(obj);
+		}
+		finally
+		{
+			readLock.unlock();
+		}
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> collection)
+	{
+		for(Object obj : collection)
+			if(!contains(obj))
+				return false;
+
+		return true;
+	}
+
+	@Override
+	public boolean isEmpty()
+	{
+		return size() == 0;
+	}
+
+	@Override
+	public Iterator<T> iterator()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean remove(Object obj)
+	{
+		try
+		{
+			writeLock.lock();
+			final List<T> list = getList(obj);
+			if(list == null)
+				return false;
+			if(list.remove(obj))
+			{
+				size.decrementAndGet();
+				return true;
+			}
+			return false;
+		}
+		finally
+		{
+			final float threshold = arraySize * (LOAD_FACTOR / 5) - 8;
+			if(size.get() < threshold)
+				shrink();
+			writeLock.unlock();
+		}
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> collection)
+	{
+		boolean changed = false;
+		for(Object obj : collection)
+			if(remove(obj))
+				changed = true;
+
+		return changed;
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c)
+	{
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int size()
+	{
+		return size.get();
+	}
+
+	@Override
+	public Object[] toArray()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a)
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public T getRandomElement()
+	{
+		try
+		{
+			readLock.lock();
+			if(isEmpty())
+				throw new NoSuchElementException("Empty set");
+			int index = random.nextInt(arraySize);
+			List<T> list = null;
+
+			while(list == null)
+			{
+				list = table[index];
+				index = ++index % arraySize;
+			}
+
+			index = random.nextInt(list.size());
+			return list.get(index);
+		}
+		finally
+		{
+			readLock.unlock();
 		}
 	}
 }
