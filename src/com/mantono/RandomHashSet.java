@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -345,8 +346,27 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	@Override
 	public boolean retainAll(Collection<?> c)
 	{
-		// TODO Auto-generated method stub
-		return false;
+		Set<?> set = new HashSet<>(c);
+		try
+		{
+			writeLock.lock();
+			boolean changed = false;
+			Iterator<T> iter = iterator();
+			while(iter.hasNext())
+			{
+				if(!set.contains(iter.next()))
+				{
+					iter.remove();
+					changed = true;
+				}
+			}
+
+			return changed;
+		}
+		finally
+		{
+			writeLock.unlock();
+		}
 	}
 
 	@Override
