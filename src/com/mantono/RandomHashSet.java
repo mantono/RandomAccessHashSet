@@ -35,7 +35,6 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	private final ReentrantReadWriteLock tableLock = new ReentrantReadWriteLock(true);
 	private final Lock writeLock = tableLock.writeLock();
 	private final Lock readLock = tableLock.readLock();
-	// private final Condition hashFinished = tableLock.newCondition();
 	private final Random random;
 
 	/**
