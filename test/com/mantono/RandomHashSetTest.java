@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -167,5 +168,47 @@ public class RandomHashSetTest
 		assertTrue(set.contains(4));
 		assertFalse(set.retainAll(list));
 		assertEquals(2, set.size());
+	}
+	
+	@Test
+	public void testIteratorAdd()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
+		set.add(1);
+		set.add(2);
+		set.add(3);
+		set.add(4);
+		
+		Iterator<Integer> iter = set.iterator();
+		int iterations = 0;
+		int sum = 0;
+		
+		while(iter.hasNext())
+		{
+			sum += iter.next();
+			iterations++;
+		}
+		
+		assertEquals(iterations, set.size());
+		assertEquals(10, sum);
+	}
+	
+	@Test
+	public void testIteratorRemove()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
+		set.add(1);
+		set.add(2);
+		set.add(3);
+		
+		Iterator<Integer> iter = set.iterator();
+		
+		while(iter.hasNext())
+		{
+			iter.next();
+			iter.remove();
+		}
+		
+		assertTrue(set.isEmpty());
 	}
 }
