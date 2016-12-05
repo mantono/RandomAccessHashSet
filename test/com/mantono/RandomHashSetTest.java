@@ -1,7 +1,11 @@
 package com.mantono;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
@@ -140,5 +144,28 @@ public class RandomHashSetTest
 		assertTrue(1 == set.getRandomElement());
 		assertTrue(2 == set.getRandomElement());
 		assertTrue(2 == set.getRandomElement());
+	}
+	
+	@Test
+	public void testRetainAll()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
+		set.add(1);
+		set.add(2);
+		set.add(3);
+		set.add(4);
+		
+		List<Integer> list = new ArrayList<Integer>(4);
+		list.add(3);
+		list.add(4);
+		list.add(5);
+		list.add(6);
+		
+		assertTrue(set.retainAll(list));
+		assertEquals(2, set.size());
+		assertTrue(set.contains(3));
+		assertTrue(set.contains(4));
+		assertFalse(set.retainAll(list));
+		assertEquals(2, set.size());
 	}
 }
