@@ -10,11 +10,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
-public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
+public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Spliterator<T>
 {
 
 	/**
@@ -491,5 +493,33 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 			}
 		}
 
+	}
+
+	@Override
+	public int characteristics()
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public long estimateSize()
+	{
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public boolean tryAdvance(Consumer<? super T> action)
+	{
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Spliterator<T> trySplit()
+	{
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
