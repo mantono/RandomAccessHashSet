@@ -211,4 +211,26 @@ public class RandomHashSetTest
 		
 		assertTrue(set.isEmpty());
 	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testIteratorRemoveTwice()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
+		set.add(1);
+		set.add(2);
+		Iterator<Integer> iter = set.iterator();
+		iter.next();
+		iter.remove();
+		iter.remove();
+	}
+	
+	@Test(expected=NoSuchElementException.class)
+	public void testIteratorTooManyNext()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		Iterator<Integer> iter = set.iterator();
+		iter.next();
+		iter.next();
+	}
 }
