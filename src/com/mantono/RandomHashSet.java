@@ -242,6 +242,8 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	@Override
 	public boolean addAll(Collection<? extends T> collection)
 	{
+		if(collection == this)
+			return false;
 		boolean changed = false;
 		for(T element : collection)
 			if(add(element))
