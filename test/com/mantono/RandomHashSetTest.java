@@ -233,4 +233,56 @@ public class RandomHashSetTest
 		iter.next();
 		iter.next();
 	}
+
+	@Test
+	public void addAllWithChanges()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		List<Integer> list = new ArrayList(4);
+		list.add(1);
+		list.add(2);
+		list.add(3);
+		list.add(4);
+		
+		assertTrue(set.addAll(list));
+	}
+	
+	@Test
+	public void addAllWithPartialChanges()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		set.add(2);
+		set.add(3);
+		List<Integer> list = new ArrayList(4);
+		list.add(1);
+		list.add(2);
+		list.add(3);
+		list.add(4);
+		
+		assertTrue(set.addAll(list));
+	}
+	
+	@Test
+	public void addAllWithNoChanges()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		set.add(2);
+		List<Integer> list = new ArrayList(4);
+		list.add(1);
+		list.add(2);
+		
+		assertFalse(set.addAll(list));
+	}
+	
+	@Test
+	public void addAllWithSelf()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		set.add(2);
+		
+		assertFalse(set.addAll(set));
+	}
 }
