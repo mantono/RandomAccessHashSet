@@ -285,4 +285,29 @@ public class RandomHashSetTest
 		
 		assertFalse(set.addAll(set));
 	}
+	
+	@Test
+	public void containsAllNoMissing()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		set.add(2);
+		List<Integer> list = new ArrayList(4);
+		list.add(1);
+		list.add(2);
+		
+		assertTrue(set.containsAll(list));
+	}
+	
+	@Test
+	public void containsAllWithMissing()
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<Integer>();
+		set.add(1);
+		List<Integer> list = new ArrayList(4);
+		list.add(1);
+		list.add(2);
+		
+		assertFalse(set.containsAll(list));
+	}
 }
