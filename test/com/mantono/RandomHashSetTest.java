@@ -115,6 +115,22 @@ public class RandomHashSetTest
 		assertEquals(limit, set.size());
 	}
 	
+	@Test
+	public void testConstructorWithLargeInitialSize()
+	{
+		Set<Integer> set = new RandomHashSet<Integer>(300);
+		for(int i = 0; i < 500; i++)
+			set.add(i);
+		
+		assertEquals(500, set.size());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorWithNegativeInitialSize()
+	{
+		Set<Integer> set = new RandomHashSet<Integer>(-1);
+	}
+	
 	@Test(expected=NoSuchElementException.class)
 	public void testExceptionOnEmptySet()
 	{
