@@ -182,12 +182,12 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	}
 
 	/**
-	 * Adds a {@link CollisionRecord} to array of {@link CollisionSet}.
+	 * Adds an element to an array.}.
 	 * 
-	 * @param e the {@link CollisionRecord} that should be added.
+	 * @param e the element that should be added.
 	 * @param array the array that the record should be added to.
-	 * @return true if it was successfully added to the {@link CollisionSet} at
-	 * the given array index, else false.
+	 * @return true if the element was successfully added to the the given array
+	 * index, else false.
 	 */
 	private boolean addToTable(T e, List<T>[] array)
 	{
@@ -257,7 +257,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * Computes the hash for an element and converts it to an index matching the
 	 * size of an array.
 	 * 
-	 * @param element to compute the hash for.
+	 * @param obj to compute the hash for.
 	 * @param array the array which length has to be taken into consideration.
 	 * @return an index based on the hash for the element and which is within
 	 * bounds for the size of the array.
