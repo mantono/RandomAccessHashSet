@@ -45,11 +45,11 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * structure will be used in scientific evaluation, or for some other reason
 	 * where the access of the elements should be random but the order that they
 	 * were accessed in should be repeatable (by entering the same seed).
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
 	public RandomHashSet(final int elementCount, final long seed)
 	{
-		setArraySize(elementCount / 3);
-		this.table = new ArrayList[arraySize];
+		initTable(elementCount);
 		this.random = new Random(seed);
 	}
 
@@ -62,11 +62,11 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * 
 	 * @param elementCount the expected amount of elements that this data
 	 * structure will hold.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
 	public RandomHashSet(final int elementCount)
 	{
-		setArraySize(elementCount / 3);
-		this.table = new ArrayList[arraySize];
+		initTable(elementCount);
 		this.random = new SecureRandom();
 	}
 
@@ -92,6 +92,21 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	public RandomHashSet()
 	{
 		this(1);
+	}
+	
+	/**
+	 * Initialize the <code>table</code> to accommodate the given number of elements.
+	 * 
+	 * @param elementCount the expected amount of elements that this data
+	 * structure will hold.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
+	 */
+	private void initTable(final int elementCount)
+	{
+		if(elementCount < 0)
+			throw new IllegalArgumentException("Initial size for set cannot be less than zero.");
+		setArraySize(elementCount / 3);
+		this.table = new ArrayList[arraySize];
 	}
 
 	/**
