@@ -36,6 +36,24 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	private final Random random;
 
 	/**
+	 * Private constructor which is called by most other constructors. This
+	 * constructor offers no extra functionality or options for the end user,
+	 * but reduces code complexity and code duplication.
+	 *
+	 * @param elementCount the expected amount of elements that this data
+	 * structure will hold.
+	 * @param random the random generator that is used when retrieveing random
+	 * elements.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is
+	 * negative.
+	 */
+	private RandomHashSet(final int elementCount, final Random random)
+	{
+		initTable(elementCount);
+		this.random = random;
+	}
+
+	/**
 	 * Constructor for this class.
 	 * 
 	 * @param elementCount the expected amount of elements that this data
@@ -45,12 +63,12 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * structure will be used in scientific evaluation, or for some other reason
 	 * where the access of the elements should be random but the order that they
 	 * were accessed in should be repeatable (by entering the same seed).
-	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is
+	 * negative.
 	 */
 	public RandomHashSet(final int elementCount, final long seed)
 	{
-		initTable(elementCount);
-		this.random = new Random(seed);
+		this(elementCount, new Random(seed));
 	}
 
 	/**
@@ -62,12 +80,64 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 * 
 	 * @param elementCount the expected amount of elements that this data
 	 * structure will hold.
-	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is
+	 * negative.
 	 */
 	public RandomHashSet(final int elementCount)
 	{
-		initTable(elementCount);
-		this.random = new SecureRandom();
+		this(elementCount, new SecureRandom());
+	}
+
+	/**
+	 * Constructor for creating a new {@link RandomHashSet} from another
+	 * {@link RandomHashSet}. The {@link Random} generator that is used in the
+	 * originating set will be kept in the new set.
+	 * 
+	 * @param set the {@link RandomHashSet} which this set should be recreated
+	 * from.
+	 */
+	public RandomHashSet(final RandomHashSet<T> set)
+	{
+		try
+		{
+			set.readLock.lock();
+			this.table = set.table;
+			this.random = set.random;
+			this.arraySize = set.arraySize;
+			this.primeIndex = set.primeIndex;
+			this.size = set.size;
+		}
+		finally
+		{
+			set.readLock.unlock();
+		}
+
+	}
+
+	/**
+	 * Constructor for creating a new {@link RandomHashSet} from an existing
+	 * {@link Set}. Since a seed to the random generator is ommitted, an
+	 * instance of {@link SecureRandom} is used instead of simply
+	 * {@link Random}.
+	 * 
+	 * @param set the {@link Set} which this set should be recreated from.
+	 */
+	public RandomHashSet(final Set<T> set)
+	{
+		this(set.size(), new SecureRandom());
+		addAll(set);
+	}
+
+	/**
+	 * Constructor for creating a new {@link RandomHashSet} from an existing
+	 * {@link Set}. This constructor uses a regular {@link Random} generator.
+	 * 
+	 * @param set the {@link Set} which this set should be recreated from.
+	 */
+	public RandomHashSet(final Set<T> set, final long seed)
+	{
+		this(set.size(), new Random(seed));
+		addAll(set);
 	}
 
 	/**
@@ -93,13 +163,15 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	{
 		this(1);
 	}
-	
+
 	/**
-	 * Initialize the <code>table</code> to accommodate the given number of elements.
+	 * Initialize the <code>table</code> to accommodate the given number of
+	 * elements.
 	 * 
 	 * @param elementCount the expected amount of elements that this data
 	 * structure will hold.
-	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is
+	 * negative.
 	 */
 	private void initTable(final int elementCount)
 	{
