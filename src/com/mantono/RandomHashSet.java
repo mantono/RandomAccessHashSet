@@ -29,7 +29,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	private List<T>[] table;
 	private volatile int arraySize = 11;
 	private volatile int primeIndex = -1;
-	private AtomicInteger size = new AtomicInteger();
+	private final AtomicInteger size = new AtomicInteger();
 	private final ReentrantReadWriteLock tableLock = new ReentrantReadWriteLock(true);
 	private final Lock writeLock = tableLock.writeLock();
 	private final Lock readLock = tableLock.readLock();
@@ -105,7 +105,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 			this.random = set.random;
 			this.arraySize = set.arraySize;
 			this.primeIndex = set.primeIndex;
-			this.size = set.size;
+			size.set(set.size());
 		}
 		finally
 		{
