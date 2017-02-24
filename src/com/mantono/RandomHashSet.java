@@ -42,7 +42,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	 *
 	 * @param elementCount the expected amount of elements that this data
 	 * structure will hold.
-	 * @param random the random generator that is used when retrieveing random
+	 * @param random the random generator that is used when retrieving random
 	 * elements.
 	 * @throws IllegalArgumentException if <code>elementCount</code> is
 	 * negative.
