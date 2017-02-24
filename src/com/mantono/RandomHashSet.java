@@ -182,6 +182,26 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
 	}
 
 	/**
+	 * Computes the number of locks that is apropiate for a given array size.
+	 * @param arraySize the size of the array.
+	 * @return the number of locks that should be used for the table array.
+	 */
+	private static int getLockCount(final int arraySize)
+	{
+		final double logSize = Math.log(arraySize);
+		int size = PRIMES[0];
+		for(int i = 1; i < PRIMES.length; i++)
+		{
+			if(PRIMES[i] < logSize)
+				size = PRIMES[i];
+			else
+				break;
+		}
+
+		return size;
+	}
+
+	/**
 	 * Adds an element to an array.}.
 	 * 
 	 * @param e the element that should be added.
