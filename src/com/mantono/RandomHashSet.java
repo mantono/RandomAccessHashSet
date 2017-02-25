@@ -221,14 +221,14 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private void takeAllLocks(RandomHashSet<T> set)
 	{
-		for(ReentrantReadWriteLock lock : set.locks)
-			lock.writeLock().lock();
+		for(int i = 0; i < set.locks.length; i++)
+			writeLock(i);
 	}
 
 	private void releaseAllLocks(RandomHashSet<T> set)
 	{
-		for(ReentrantReadWriteLock lock : set.locks)
-			lock.writeLock().unlock();
+		for(int i = 0; i < set.locks.length; i++)
+			writeUnlock(i);
 	}
 
 	private ReadLock readLock(Object obj)
