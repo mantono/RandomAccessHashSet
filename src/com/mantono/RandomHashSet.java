@@ -315,15 +315,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 			final float threshold = arraySize * LOAD_FACTOR;
 			if(size.get() > threshold)
 				expand();
-			try
-			{
-				writeUnlock(e);
-			}
-			catch(IllegalMonitorStateException e2)
-			{
-				System.err.println("Got IMS at index " + e.hashCode());
-				throw e2;
-			}
+			writeUnlock(e);
 		}
 	}
 
