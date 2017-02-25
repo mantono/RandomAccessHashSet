@@ -501,6 +501,20 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		}
 	}
 
+	@Override
+	public String toString()
+	{
+
+			final StringBuilder content = new StringBuilder("[");
+			for(T e : this)
+				content.append(e.toString() + ", ");
+			content.deleteCharAt(content.length()-1);
+			content.deleteCharAt(content.length()-1);
+			content.append(']');
+			
+			return content.toString();
+	}
+
 	private class TableIterator<T> implements Iterator<T>
 	{
 		private final int startSize;
