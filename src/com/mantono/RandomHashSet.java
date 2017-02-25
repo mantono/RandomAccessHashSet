@@ -2,15 +2,7 @@ package com.mantono;
 
 import java.io.Serializable;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -89,6 +81,44 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	public RandomHashSet(final int elementCount)
 	{
 		this(elementCount, new SecureRandom(), 8);
+	}
+
+	/**
+	 * Constructor for this class.
+	 *
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @param threads      the maximum number of threads that this object is expected to be
+	 *                     used by simultaneously.
+	 * @param seed         is the initial seed that the {@link Random} generator will be
+	 *                     initialized with. Setting a specific seed is useful when the
+	 *                     the data structure will be used in scientific evaluation, or
+	 *                     for some other reason where the access of the elements should
+	 *                     be random but the order that they were accessed in should be
+	 *                     repeatable (by entering the same seed).
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative or <code>threads</code> is less than one.
+	 */
+	public RandomHashSet(final int elementCount, final int threads, final long seed)
+	{
+		this(elementCount, new Random(seed), threads);
+	}
+
+	/**
+	 * Constructor for this class. When no second argument is given and the seed
+	 * to the random generator is ommitted, an instance of {@link SecureRandom}
+	 * is used instead of simply {@link Random}. This is a better approach when
+	 * it is required that the sequence of random elements fetched through
+	 * {@link RandomHashSet#getRandomElement()} is truly unpredictable.
+	 *
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @param threads      the maximum number of threads that this object is expected to be
+	 *                     used by simultaneously.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative or <code>threads</code> is less than one.
+	 */
+	public RandomHashSet(final int elementCount, final int threads)
+	{
+		this(elementCount, new SecureRandom(), threads);
 	}
 
 	/**
@@ -178,13 +208,15 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 *                     hold.
 	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
-	private void initTable(final int maxThreads, final int elementCount)
+	private void initTable(final int threads, final int elementCount)
 	{
 		if(elementCount < 0)
 			throw new IllegalArgumentException("Initial size for set cannot be less than zero.");
-		final int elementsPerThreads = elementCount / maxThreads;
+		if(threads < 1)
+			throw new IllegalArgumentException("Threads cannot be less than one.");
+		final int elementsPerThreads = elementCount / threads;
 		setArraySize(elementsPerThreads / 3);
-		this.table = new ArrayList[maxThreads][arraySize];
+		this.table = new ArrayList[threads][arraySize];
 	}
 
 	private void takeAllLocks(RandomHashSet<T> set)
