@@ -267,7 +267,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private WriteLock writeLock(final int hashCode)
 	{
-		final int lockIndex = indexOfLock(hashCode);
+		final int lockIndex = Math.abs(indexOfLock(hashCode));
 		final WriteLock lock = locks[lockIndex].writeLock();
 		lock.lock();
 		return lock;
@@ -281,7 +281,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private int indexOfLock(final int hashCode)
 	{
-		return hashCode % locks.length;
+		return Math.abs(hashCode % locks.length);
 	}
 
 	/**
@@ -387,7 +387,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private int hashIndex(int hash, Object[] array)
 	{
-		final int index = hash % array.length;
+		final int index = Math.abs(hash % array.length);
 		return index;
 	}
 
