@@ -1,16 +1,10 @@
 package com.mantono;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
-
 import org.junit.Test;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class RandomHashSetTest
 {
@@ -147,20 +141,23 @@ public class RandomHashSetTest
 	}
 	
 	@Test()
-	public void testGetRandomElementWithStaticSeed()
+	public void testDeterministicGetRandomElementWithStaticSeed()
 	{
-		RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
-		set.add(1);
-		set.add(2);
-		set.add(3);
-		assertTrue(1 == set.getRandomElement());
-		assertTrue(1 == set.getRandomElement());
-		assertTrue(3 == set.getRandomElement());
-		assertTrue(1 == set.getRandomElement());
-		assertTrue(1 == set.getRandomElement());
-		assertTrue(1 == set.getRandomElement());
-		assertTrue(2 == set.getRandomElement());
-		assertTrue(2 == set.getRandomElement());
+		final ArrayList[] outcomes = new ArrayList[2];
+
+		for(int i = 0; i < 2; i++)
+		{
+			outcomes[i] = new ArrayList<Integer>(10);
+			RandomHashSet<Integer> set = new RandomHashSet<Integer>(42L);
+			set.add(1);
+			set.add(2);
+			set.add(3);
+			for(int n = 0; n < 10; n++)
+				outcomes[i].add(set.getRandomElement());
+
+		}
+
+		assertEquals(outcomes[0], outcomes[1]);
 	}
 	
 	@Test

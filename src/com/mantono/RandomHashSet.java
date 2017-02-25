@@ -25,7 +25,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private final static float LOAD_FACTOR = 1.6f;
 
-	private List<T>[] table;
+	private List<T>[][] table;
 	private volatile int arraySize = 11;
 	private volatile int primeIndex = -1;
 	private final AtomicInteger size = new AtomicInteger();
@@ -37,18 +37,15 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 * constructor offers no extra functionality or options for the end user,
 	 * but reduces code complexity and code duplication.
 	 *
-	 * @param elementCount
-	 *            the expected amount of elements that this data structure will
-	 *            hold.
-	 * @param random
-	 *            the random generator that is used when retrieving random
-	 *            elements.
-	 * @throws IllegalArgumentException
-	 *             if <code>elementCount</code> is negative.
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @param random       the random generator that is used when retrieving random
+	 *                     elements.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
 	private RandomHashSet(final int elementCount, final Random random, final int maxThreads)
 	{
-		initTable(elementCount);
+		initTable(maxThreads, elementCount);
 		this.locks = new ReentrantReadWriteLock[maxThreads];
 		initLocks();
 		this.random = random;
@@ -62,19 +59,16 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	/**
 	 * Constructor for this class.
-	 * 
-	 * @param elementCount
-	 *            the expected amount of elements that this data structure will
-	 *            hold.
-	 * @param seed
-	 *            is the initial seed that the {@link Random} generator will be
-	 *            initialized with. Setting a specific seed is useful when the
-	 *            the data structure will be used in scientific evaluation, or
-	 *            for some other reason where the access of the elements should
-	 *            be random but the order that they were accessed in should be
-	 *            repeatable (by entering the same seed).
-	 * @throws IllegalArgumentException
-	 *             if <code>elementCount</code> is negative.
+	 *
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @param seed         is the initial seed that the {@link Random} generator will be
+	 *                     initialized with. Setting a specific seed is useful when the
+	 *                     the data structure will be used in scientific evaluation, or
+	 *                     for some other reason where the access of the elements should
+	 *                     be random but the order that they were accessed in should be
+	 *                     repeatable (by entering the same seed).
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
 	public RandomHashSet(final int elementCount, final long seed)
 	{
@@ -87,12 +81,10 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 * is used instead of simply {@link Random}. This is a better approach when
 	 * it is required that the sequence of random elements fetched through
 	 * {@link RandomHashSet#getRandomElement()} is truly unpredictable.
-	 * 
-	 * @param elementCount
-	 *            the expected amount of elements that this data structure will
-	 *            hold.
-	 * @throws IllegalArgumentException
-	 *             if <code>elementCount</code> is negative.
+	 *
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
 	public RandomHashSet(final int elementCount)
 	{
@@ -103,9 +95,8 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 * Constructor for creating a new {@link RandomHashSet} from another
 	 * {@link RandomHashSet}. The {@link Random} generator that is used in the
 	 * originating set will be kept in the new set.
-	 * 
-	 * @param set
-	 *            the {@link RandomHashSet} which this set should be recreated
+	 *
+	 * @param set the {@link RandomHashSet} which this set should be recreated
 	 *            from.
 	 */
 	public RandomHashSet(final RandomHashSet<T> set)
@@ -133,7 +124,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 * {@link Collection}. Since a seed to the random generator is ommitted, an
 	 * instance of {@link SecureRandom} is used instead of simply
 	 * {@link Random}.
-	 * 
+	 *
 	 * @param collection the {@link Collection} which this set should be recreated from.
 	 */
 	public RandomHashSet(final Collection<T> collection)
@@ -145,7 +136,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	/**
 	 * Constructor for creating a new {@link RandomHashSet} with the elements from an existing
 	 * {@link Set}. This constructor uses a regular {@link Random} generator.
-	 * 
+	 *
 	 * @param set the {@link Set} which this set should be recreated from.
 	 */
 	public RandomHashSet(final Set<T> set, final long seed)
@@ -157,14 +148,13 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	/**
 	 * Constructor for this class. This constructor will use the default array
 	 * size of 11 upon initialization.
-	 * 
-	 * @param seed
-	 *            is the initial seed that the {@link Random} generator will be
-	 *            initialized with. Setting a specific seed is useful when the
-	 *            the data structure will be used in scientific evaluation, or
-	 *            for some other reason where the access of the elements should
-	 *            be random but the order that they were accessed in should be
-	 *            repeatable (by entering the same seed).
+	 *
+	 * @param seed is the initial seed that the {@link Random} generator will be
+	 *             initialized with. Setting a specific seed is useful when the
+	 *             the data structure will be used in scientific evaluation, or
+	 *             for some other reason where the access of the elements should
+	 *             be random but the order that they were accessed in should be
+	 *             repeatable (by entering the same seed).
 	 */
 	public RandomHashSet(final long seed)
 	{
@@ -183,19 +173,18 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	/**
 	 * Initialize the <code>table</code> to accommodate the given number of
 	 * elements.
-	 * 
-	 * @param elementCount
-	 *            the expected amount of elements that this data structure will
-	 *            hold.
-	 * @throws IllegalArgumentException
-	 *             if <code>elementCount</code> is negative.
+	 *
+	 * @param elementCount the expected amount of elements that this data structure will
+	 *                     hold.
+	 * @throws IllegalArgumentException if <code>elementCount</code> is negative.
 	 */
-	private void initTable(final int elementCount)
+	private void initTable(final int maxThreads, final int elementCount)
 	{
 		if(elementCount < 0)
 			throw new IllegalArgumentException("Initial size for set cannot be less than zero.");
-		setArraySize(elementCount / 3);
-		this.table = new ArrayList[arraySize];
+		final int elementsPerThreads = elementCount / maxThreads;
+		setArraySize(elementsPerThreads / 3);
+		this.table = new ArrayList[maxThreads][arraySize];
 	}
 
 	private void takeAllLocks(RandomHashSet<T> set)
@@ -260,36 +249,34 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private int indexOfLock(final int hashCode)
 	{
-		final int tableIndex = hashIndex(hashCode, table);
-		return tableIndex % locks.length;
+		return hashCode % locks.length;
 	}
 
 	/**
 	 * Adds an element to an array.}.
-	 * 
-	 * @param e
-	 *            the element that should be added.
-	 * @param array
-	 *            the array that the record should be added to.
+	 *
+	 * @param e     the element that should be added.
+	 * @param array the array that the record should be added to.
 	 * @return true if the element was successfully added to the the given array
-	 *         index, else false.
+	 * index, else false.
 	 */
-	private boolean addToTable(T e, List<T>[] array)
+	private boolean addToTable(T e, List<T>[][] array)
 	{
-		final Lock lock = writeLock(e);
 		try
 		{
+			writeLock(e);
+			final int lockIndex = indexOfLock(e.hashCode());
 			final int index = hashIndex(e, array);
 			if(index >= array.length)
 				throw new ConcurrentModificationException(
 						"Illegal state: Trying to insert in index " + index
 								+ " but size of array is " + array.length + "(" + arraySize
 								+ ")\n");
-			if(array[index] == null)
-				array[index] = (List<T>) new ArrayList<Object>();
-			if(array[index].contains(e))
+			if(array[lockIndex][index] == null)
+				array[lockIndex][index] = (List<T>) new ArrayList<Object>();
+			if(array[lockIndex][index].contains(e))
 				return false;
-			return array[index].add(e);
+			return array[lockIndex][index].add(e);
 		}
 		finally
 		{
@@ -298,7 +285,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 				expand();
 			try
 			{
-				lock.unlock();
+				writeUnlock(e);
 			}
 			catch(IllegalMonitorStateException e2)
 			{
@@ -336,13 +323,16 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 */
 	private void rehashTable()
 	{
-		final List<T>[] rehashedArray = (List<T>[]) new ArrayList[arraySize];
-		for(int i = 0; i < table.length; i++)
+		final List<T>[][] rehashedArray = (List<T>[][]) new ArrayList[locks.length][arraySize];
+		for(int n = 0; n < locks.length; n++)
 		{
-			final List<T> list = table[i];
-			if(list != null)
-				for(T e : list)
-					addToTable(e, rehashedArray);
+			for(int i = 0; i < table.length; i++)
+			{
+				final List<T> list = table[n][i];
+				if(list != null)
+					for(T e : list)
+						addToTable(e, rehashedArray);
+			}
 		}
 
 		table = rehashedArray;
@@ -351,13 +341,11 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	/**
 	 * Computes the hash for an element and converts it to an index matching the
 	 * size of an array.
-	 * 
-	 * @param obj
-	 *            to compute the hash for.
-	 * @param array
-	 *            the array which length has to be taken into consideration.
+	 *
+	 * @param obj   to compute the hash for.
+	 * @param array the array which length has to be taken into consideration.
 	 * @return an index based on the hash for the element and which is within
-	 *         bounds for the size of the array.
+	 * bounds for the size of the array.
 	 */
 	private int hashIndex(Object obj, Object[] array)
 	{
@@ -392,29 +380,30 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	/**
 	 * Finds the next prime number that is equal or greater to the given
 	 * argument, and sets the future array size to that number.
-	 * 
-	 * @param initialApproximateArraySize
-	 *            the number that should be compared to.
+	 *
+	 * @param initialApproximateArraySize the number that should be compared to.
 	 */
-	private void setArraySize(int initialApproximateArraySize)
+	private int setArraySize(int initialApproximateArraySize)
 	{
-		if(initialApproximateArraySize < 11)
-			return;
+		if(initialApproximateArraySize < PRIMES[0])
+			return PRIMES[0];
 		for(int i = 0; i < PRIMES.length; i++)
 		{
 			if(PRIMES[i] >= initialApproximateArraySize)
 			{
 				arraySize = PRIMES[i];
 				primeIndex = i;
-				return;
+				return arraySize;
 			}
 		}
+		return PRIMES[0];
 	}
 
 	private List<T> getList(Object obj)
 	{
 		final int index = hashIndex(obj, table);
-		return table[index];
+		final int lockIndex = indexOfLock(obj.hashCode());
+		return table[lockIndex][index];
 	}
 
 	@Override
@@ -450,7 +439,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 			takeAllLocks(this);
 			primeIndex = 0;
 			arraySize = 11;
-			table = new ArrayList[arraySize];
+			table = new ArrayList[locks.length][arraySize];
 			size.set(0);
 		}
 		finally
@@ -544,7 +533,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 			takeAllLocks(this);
 			boolean changed = false;
 			Iterator<T> iter = iterator();
-			while (iter.hasNext())
+			while(iter.hasNext())
 			{
 				if(!set.contains(iter.next()))
 				{
@@ -590,12 +579,15 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 			if(isEmpty())
 				throw new NoSuchElementException("Empty set");
 			int index = random.nextInt(arraySize);
+			int lockIndex = random.nextInt(locks.length);
 			List<T> list = null;
 
-			while (list == null)
+			while(list == null)
 			{
-				list = table[index];
+				list = table[lockIndex][index];
 				index = ++index % arraySize;
+				if(index == 0)
+					lockIndex = ++lockIndex % locks.length;
 			}
 
 			readLock(index);
@@ -620,25 +612,26 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	public String toString()
 	{
 
-			final StringBuilder content = new StringBuilder("[");
-			for(T e : this)
-				content.append(e.toString() + ", ");
-			content.deleteCharAt(content.length()-1);
-			content.deleteCharAt(content.length()-1);
-			content.append(']');
-			
-			return content.toString();
+		final StringBuilder content = new StringBuilder("[");
+		for(T e : this)
+			content.append(e.toString() + ", ");
+		content.deleteCharAt(content.length() - 1);
+		content.deleteCharAt(content.length() - 1);
+		content.append(']');
+
+		return content.toString();
 	}
 
 	private class TableIterator<T> implements Iterator<T>
 	{
 		private final int startSize;
-		private int arrayIndex, listIndex, traversedElements;
+		private int arrayIndex, listIndex, lockIndex, traversedElements;
 		private boolean hasElement = false;
 
 		public TableIterator()
 		{
 			this.arrayIndex = this.traversedElements = 0;
+			this.lockIndex = 0;
 			this.listIndex = -1;
 			this.startSize = size.get();
 		}
@@ -652,10 +645,10 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		@Override
 		public T next()
 		{
-			final Integer obj = new Integer(1);
+			final int currentLockIndex = lockIndex;
 			try
 			{
-				readLock(obj);
+				readLock(currentLockIndex);
 				if(!hasNext())
 					throw new NoSuchElementException();
 				final T next = nextElement();
@@ -665,7 +658,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 			}
 			finally
 			{
-				readUnlock(obj);
+				readUnlock(currentLockIndex);
 			}
 		}
 
@@ -673,17 +666,22 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		{
 			T e = null;
 
-			while (e == null)
+			while(e == null)
 			{
 				listIndex++;
-				if(table[arrayIndex] == null || table[arrayIndex].size() <= listIndex)
+				if(table[lockIndex][arrayIndex] == null || table[lockIndex][arrayIndex].size() <= listIndex)
 				{
 					arrayIndex++;
+					if(arrayIndex == table[0].length)
+					{
+						arrayIndex = 0;
+						lockIndex++;
+					}
 					listIndex = -1;
 					continue;
 				}
 
-				e = (T) table[arrayIndex].get(listIndex);
+				e = (T) table[lockIndex][arrayIndex].get(listIndex);
 			}
 
 			return e;
@@ -692,13 +690,13 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		@Override
 		public void remove()
 		{
-			final int hashCode = table[arrayIndex].hashCode();
+			final int hashCode = table[lockIndex][arrayIndex].hashCode();
 			try
 			{
-				writeLock(table[arrayIndex]);
+				writeLock(table[lockIndex][arrayIndex]);
 				if(!hasElement)
 					throw new IllegalStateException();
-				table[arrayIndex].remove(listIndex);
+				table[lockIndex][arrayIndex].remove(listIndex);
 				size.decrementAndGet();
 				hasElement = false;
 			}
