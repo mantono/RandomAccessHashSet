@@ -112,29 +112,29 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	}
 
 	/**
-	 * Constructor for creating a new {@link RandomHashSet} from an existing
-	 * {@link Set}. Since a seed to the random generator is ommitted, an
+	 * Constructor for creating a new {@link RandomHashSet} with the elements from an existing
+	 * {@link Collection}. Since a seed to the random generator is ommitted, an
 	 * instance of {@link SecureRandom} is used instead of simply
 	 * {@link Random}.
 	 * 
-	 * @param set the {@link Set} which this set should be recreated from.
+	 * @param set the {@link Collection} which this set should be recreated from.
 	 */
-	public RandomHashSet(final Set<T> set)
+	public RandomHashSet(final Collection<T> collection)
 	{
-		this(set.size(), new SecureRandom());
-		addAll(set);
+		this(collection.size(), new SecureRandom());
+		addAll(collection);
 	}
 
 	/**
-	 * Constructor for creating a new {@link RandomHashSet} from an existing
-	 * {@link Set}. This constructor uses a regular {@link Random} generator.
+	 * Constructor for creating a new {@link RandomHashSet} with the elements from an existing
+	 * {@link Colllection}. This constructor uses a regular {@link Random} generator.
 	 * 
-	 * @param set the {@link Set} which this set should be recreated from.
+	 * @param set the {@link Collection} which this set should be recreated from.
 	 */
-	public RandomHashSet(final Set<T> set, final long seed)
+	public RandomHashSet(final Collection<T> collection, final long seed)
 	{
-		this(set.size(), new Random(seed));
-		addAll(set);
+		this(collection.size(), new Random(seed));
+		addAll(collection);
 	}
 
 	/**
