@@ -1,5 +1,6 @@
 package com.mantono;
 
+import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,12 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class RandomHashSet<T> implements RandomAccess<T>, Set<T>
+public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 {
-
-	/**
-	 * 
-	 */
 	private final static int[] PRIMES = {23, 53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157, 98317,
 			196613, 393241, 786433, 1572869, 3145739, 6291469, 12582917, 25165843, 50331653, 100663319, 201326611,
 			402653189, 805306457, 1610612741};
