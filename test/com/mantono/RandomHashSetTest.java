@@ -2,7 +2,10 @@ package com.mantono;
 
 import org.junit.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 
@@ -320,7 +323,125 @@ public class RandomHashSetTest
 		List<Integer> list = new ArrayList(4);
 		list.add(1);
 		list.add(2);
-		
+
 		assertFalse(set.containsAll(list));
+	}
+
+	@Test
+	public void threadPerformanceTest()
+	{
+		BlockingQueue<Instruction> instructions = createInstructions(200_000);
+		final Duration timeSequential = executeInstructions(instructions, 1);
+
+		System.out.println("Time for sequential: " + timeSequential);
+
+		System.gc();
+
+		instructions = createInstructions(200_000);
+		final Duration timeConcurrent = executeInstructions(instructions, 10);
+
+		System.out.println("Time for concurrent: " + timeConcurrent);
+
+		assertEquals(-1, timeConcurrent.compareTo(timeSequential));
+	}
+
+	private Duration executeInstructions(BlockingQueue<Instruction> instructions, int threads)
+	{
+		RandomHashSet<Integer> set = new RandomHashSet<>(instructions.size() / 2, threads);
+		ThreadPoolExecutor tpx = new ThreadPoolExecutor(threads, threads, 300, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(100));
+		Future<?>[] results = new Future[threads];
+
+		final Instant start = Instant.now();
+
+		for(int i = 0; i < threads; i++)
+			results[i] = tpx.submit(new ThreadTester(i, set, instructions));
+
+		try
+		{
+			for(int i = 0; i < results.length; i++)
+				results[i].get();
+		}
+		catch(InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		catch(ExecutionException e)
+		{
+			e.printStackTrace();
+		}
+
+		final Instant finished = Instant.now();
+		return Duration.between(start, finished);
+	}
+
+	private BlockingQueue<Instruction> createInstructions(int count)
+	{
+		final BlockingQueue<Instruction> instructions = new ArrayBlockingQueue<>(count);
+		final int possibleInstructions = Instruction.values().length;
+
+		Instruction inst;
+		final Random rand = new Random();
+		do
+		{
+			final int rb = rand.nextInt(possibleInstructions);
+			inst = Instruction.values()[rb];
+		}
+		while(instructions.offer(inst));
+
+		return instructions;
+	}
+
+	private enum Instruction
+	{
+		ADD,
+		CONTAINS,
+		REMOVE;
+	}
+
+	private class ThreadTester implements Runnable
+	{
+		private final int id;
+		private final RandomHashSet<Integer> set;
+		private final BlockingQueue<Instruction> instructions;
+
+		ThreadTester(final int threadId, RandomHashSet<Integer> set, BlockingQueue<Instruction> instructions)
+		{
+			this.id = threadId;
+			this.instructions = instructions;
+			this.set = set;
+		}
+
+		@Override
+		public void run()
+		{
+			Thread.currentThread().setName("t:" + id);
+			Random r = new Random();
+			while(!instructions.isEmpty())
+			{
+				final int e = r.nextInt();
+				try
+				{
+					final Instruction ins = instructions.poll(100, TimeUnit.MILLISECONDS);
+					if(ins == null)
+						return;
+					switch(ins)
+					{
+						case ADD:
+							set.add(e);
+							break;
+						case CONTAINS:
+							set.contains(e);
+							break;
+						case REMOVE:
+							set.remove(e);
+							break;
+					}
+				}
+				catch(InterruptedException e1)
+				{
+					e1.printStackTrace();
+				}
+			}
+		}
 	}
 }
