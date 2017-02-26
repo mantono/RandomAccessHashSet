@@ -222,14 +222,13 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	private void takeAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-			set.locks[i].writeLock().lock();
+			writeLock(i);
 	}
 
 	private void releaseAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-			set.locks[i].writeLock().unlock();
-		//writeUnlock(i);
+			writeUnlock(i);
 	}
 
 	private void readLock(Object obj)
