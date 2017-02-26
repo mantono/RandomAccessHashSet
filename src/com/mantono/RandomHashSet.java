@@ -222,19 +222,13 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	private void takeAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-		{
 			set.locks[i].writeLock().lock();
-			System.out.println(Thread.currentThread().getName() + " took look " + i + " of " + (locks.length - 1));
-		}
 	}
 
 	private void releaseAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-		{
 			set.locks[i].writeLock().unlock();
-			System.out.println(Thread.currentThread().getName() + " released look " + i + " of " + (locks.length - 1));
-		}
 		//writeUnlock(i);
 	}
 
@@ -367,7 +361,6 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	 */
 	private void changeTableSize()
 	{
-		System.out.println(Thread.currentThread().getName() + " is doing changeTableSize");
 		try
 		{
 			takeAllLocks(this);
@@ -379,7 +372,6 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		finally
 		{
 			releaseAllLocks(this);
-			System.out.println(Thread.currentThread().getName() + " has done changeTableSize");
 		}
 	}
 
