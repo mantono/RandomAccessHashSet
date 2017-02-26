@@ -602,11 +602,8 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		finally
 		{
 			writeUnlock(obj);
-			final float threshold = arraySize * (LOAD_FACTOR / 5) - 8;
-			if(size.get() < threshold)
-			{
+			if(needsResizing())
 				changeTableSize();
-			}
 		}
 	}
 
