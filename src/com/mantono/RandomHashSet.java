@@ -43,6 +43,9 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		this.random = random;
 	}
 
+	/**
+	 * Initiate the {@link ReentrantReadWriteLock} locks used for locking the data matrix.
+	 */
 	private void initLocks()
 	{
 		for(int i = 0; i < locks.length; i++)
@@ -219,33 +222,65 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		this.table = new ArrayList[threads][arraySize];
 	}
 
+	/**
+	 * Take all locks from the given set. This is only used when operations are performed on the entire matrix,
+	 * like expanding, shrinking or copying the underlying the matrix.
+	 *
+	 * @param set the set from which the locks will be acquired.
+	 */
 	private void takeAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
 			writeLock(i);
 	}
 
+	/**
+	 * Release all locks from the given set. This is only used after operations are performed on the entire matrix,
+	 * like expanding, shrinking or copying the underlying the matrix.
+	 *
+	 * @param set the set from which the locks will be released.
+	 */
 	private void releaseAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
 			writeUnlock(i);
 	}
 
+	/**
+	 * Acquire the {@link ReadLock} for a specific object.
+	 *
+	 * @param obj objects which read lock to acquire.
+	 */
 	private void readLock(Object obj)
 	{
 		readLock(obj.hashCode());
 	}
 
+	/**
+	 * Release the {@link ReadLock} for a specific object.
+	 *
+	 * @param obj objects which read lock to release.
+	 */
 	private void readUnlock(Object obj)
 	{
 		readUnlock(obj.hashCode());
 	}
 
+	/**
+	 * Acquire the {@link WriteLock} for a specific object.
+	 *
+	 * @param obj objects which write lock to acquire.
+	 */
 	private void writeLock(Object obj)
 	{
 		writeLock(obj.hashCode());
 	}
 
+	/**
+	 * Release the {@link WriteLock} for a specific object.
+	 *
+	 * @param obj objects which write lock to release.
+	 */
 	private void writeUnlock(Object obj)
 	{
 		writeUnlock(obj.hashCode());
