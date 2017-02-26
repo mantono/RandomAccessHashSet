@@ -3,8 +3,8 @@ package com.mantono;
 import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -46,7 +46,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	private void initLocks()
 	{
 		for(int i = 0; i < locks.length; i++)
-			this.locks[i] = new ReentrantReadWriteLock();
+			this.locks[i] = new ReentrantReadWriteLock(true);
 	}
 
 	/**
@@ -222,18 +222,25 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	private void takeAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-			writeLock(i);
+		{
+			set.locks[i].writeLock().lock();
+			System.out.println(Thread.currentThread().getName() + " took look " + i + " of " + (locks.length - 1));
+		}
 	}
 
 	private void releaseAllLocks(RandomHashSet<T> set)
 	{
 		for(int i = 0; i < set.locks.length; i++)
-			writeUnlock(i);
+		{
+			set.locks[i].writeLock().unlock();
+			System.out.println(Thread.currentThread().getName() + " released look " + i + " of " + (locks.length - 1));
+		}
+		//writeUnlock(i);
 	}
 
-	private ReadLock readLock(Object obj)
+	private void readLock(Object obj)
 	{
-		return readLock(obj.hashCode());
+		readLock(obj.hashCode());
 	}
 
 	private void readUnlock(Object obj)
@@ -241,9 +248,9 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		readUnlock(obj.hashCode());
 	}
 
-	private WriteLock writeLock(Object obj)
+	private void writeLock(Object obj)
 	{
-		return writeLock(obj.hashCode());
+		writeLock(obj.hashCode());
 	}
 
 	private void writeUnlock(Object obj)
@@ -251,12 +258,21 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		writeUnlock(obj.hashCode());
 	}
 
-	private ReadLock readLock(final int hashCode)
+	private void readLock(final int hashCode)
 	{
-		final int lockIndex = indexOfLock(hashCode);
-		final ReadLock lock = locks[lockIndex].readLock();
-		lock.lock();
-		return lock;
+		try
+		{
+			final int lockIndex = indexOfLock(hashCode);
+			final ReadLock lock = locks[lockIndex].readLock();
+			while(!lock.tryLock(5, TimeUnit.MILLISECONDS))
+			{
+				Thread.sleep(Thread.currentThread().hashCode() % 10);
+			}
+		}
+		catch(InterruptedException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	private void readUnlock(final int hashCode)
@@ -265,12 +281,21 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		locks[lockIndex].readLock().unlock();
 	}
 
-	private WriteLock writeLock(final int hashCode)
+	private void writeLock(final int hashCode)
 	{
-		final int lockIndex = Math.abs(indexOfLock(hashCode));
-		final WriteLock lock = locks[lockIndex].writeLock();
-		lock.lock();
-		return lock;
+		try
+		{
+			final int lockIndex = indexOfLock(hashCode);
+			final WriteLock lock = locks[lockIndex].writeLock();
+			while(!lock.tryLock(5, TimeUnit.MILLISECONDS))
+			{
+				Thread.sleep(Thread.currentThread().hashCode() % 10);
+			}
+		}
+		catch(InterruptedException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	private void writeUnlock(final int hashCode)
@@ -312,33 +337,50 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		}
 		finally
 		{
-			final float threshold = arraySize * LOAD_FACTOR;
-			if(size.get() > threshold)
-				expand();
 			writeUnlock(e);
+			if(needsResizing())
+				changeTableSize();
 		}
 	}
 
-	/**
-	 * Expands the size of the internal array.
-	 */
-	private void expand()
+	private boolean moveToTable(T e, List<T>[][] array)
 	{
-		takeAllLocks(this);
-		advanceTotNextPrime();
-		rehashTable();
-		releaseAllLocks(this);
+
+		final int lockIndex = indexOfLock(e.hashCode());
+		if(!locks[lockIndex].writeLock().isHeldByCurrentThread())
+			throw new IllegalMonitorStateException();
+		final int index = hashIndex(e, array);
+		if(index >= array.length)
+			throw new ConcurrentModificationException(
+					"Illegal state: Trying to insert in index " + index
+							+ " but size of array is " + array.length + "(" + arraySize
+							+ ")\n");
+		if(array[lockIndex][index] == null)
+			array[lockIndex][index] = (List<T>) new ArrayList<Object>();
+		if(array[lockIndex][index].contains(e))
+			return false;
+		return array[lockIndex][index].add(e);
 	}
 
 	/**
-	 * Shrinks the size of the internal array.
+	 * Change the size of the internal data matrix.
 	 */
-	private void shrink()
+	private void changeTableSize()
 	{
-		takeAllLocks(this);
-		previousPrime();
-		rehashTable();
-		releaseAllLocks(this);
+		System.out.println(Thread.currentThread().getName() + " is doing changeTableSize");
+		try
+		{
+			takeAllLocks(this);
+			if(!needsResizing())
+				return;
+			changePrime();
+			rehashTable();
+		}
+		finally
+		{
+			releaseAllLocks(this);
+			System.out.println(Thread.currentThread().getName() + " has done changeTableSize");
+		}
 	}
 
 	/**
@@ -355,7 +397,7 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 				final List<T> list = table[n][i];
 				if(list != null)
 					for(T e : list)
-						addToTable(e, rehashedArray);
+						moveToTable(e, rehashedArray);
 			}
 		}
 
@@ -383,22 +425,35 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		return index;
 	}
 
-	/**
-	 * Changes the array size (on next rehash of table) to the next greater
-	 * prime number.
-	 */
-	private void advanceTotNextPrime()
+	private float lowerThreshold()
 	{
-		arraySize = PRIMES[++primeIndex];
+		return arraySize * (LOAD_FACTOR / 5) - 8;
+	}
+
+	private float upperThreshold()
+	{
+		return arraySize * LOAD_FACTOR;
+	}
+
+	private boolean needsResizing()
+	{
+		return size() < lowerThreshold() || size() > upperThreshold();
 	}
 
 	/**
-	 * Changes the array size (on next rehash of table) to the next lesser prime
+	 * Changes the array size (on next rehash of table) to the next lesser
+	 * or greater prime
 	 * number.
 	 */
-	private void previousPrime()
+	private boolean changePrime()
 	{
-		arraySize = PRIMES[--primeIndex];
+		if(size() < lowerThreshold())
+			arraySize = PRIMES[--primeIndex];
+		else if(size() > upperThreshold())
+			arraySize = PRIMES[++primeIndex];
+		else
+			return false;
+		return true;
 	}
 
 	/**
@@ -515,9 +570,9 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 	@Override
 	public boolean remove(Object obj)
 	{
-		final Lock lock = writeLock(obj);
 		try
 		{
+			writeLock(obj);
 			final List<T> list = getList(obj);
 			if(list == null)
 				return false;
@@ -530,10 +585,12 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 		}
 		finally
 		{
+			writeUnlock(obj);
 			final float threshold = arraySize * (LOAD_FACTOR / 5) - 8;
 			if(size.get() < threshold)
-				shrink();
-			lock.unlock();
+			{
+				changeTableSize();
+			}
 		}
 	}
 
