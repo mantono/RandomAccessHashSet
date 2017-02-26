@@ -288,19 +288,9 @@ public class RandomHashSet<T> implements RandomAccess<T>, Set<T>, Serializable
 
 	private void readLock(final int hashCode)
 	{
-		try
-		{
-			final int lockIndex = indexOfLock(hashCode);
-			final ReadLock lock = locks[lockIndex].readLock();
-			while(!lock.tryLock(5, TimeUnit.MILLISECONDS))
-			{
-				Thread.sleep(Thread.currentThread().hashCode() % 10);
-			}
-		}
-		catch(InterruptedException e)
-		{
-			e.printStackTrace();
-		}
+		final int lockIndex = indexOfLock(hashCode);
+		final ReadLock lock = locks[lockIndex].readLock();
+		lock.lock();
 	}
 
 	private void readUnlock(final int hashCode)
